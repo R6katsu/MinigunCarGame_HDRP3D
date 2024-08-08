@@ -1,18 +1,17 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Experimental.VFX;
+using UnityEngine.VFX;
+using static UnityEngine.Rendering.DebugUI;
 
 public class MiniGun : MonoBehaviour
 {
-    // Rayを飛ばし、当たった敵にダメージを与える。
-    // 弾にRBはアタッチせず、弾道にエフェクトのみを描写する。
-    // 弾は落ちず、偏差も一切考慮する必要がない。
-    // ミニガンである為、かなり弾はばらけると思われる
-
-    public float fireRate = 0.1f; // 発射間隔
-    public float damage = 10f; // ダメージ量
-    public float range = 100f; // Rayの飛距離
-    public float spread = 0.1f; // ばらける範囲
+    public float fireRate = 0.1f;   // 発射間隔
+    public float damage = 10f;      // ダメージ量
+    public float range = 100f;      // Rayの飛距離
+    public float spread = 0.1f;     // ばらける範囲
+    public VisualEffect effect;     // Hit時に生じるVFX
 
     public LineRenderer lineRenderer; // LineRendererコンポーネント
 
@@ -33,13 +32,20 @@ public class MiniGun : MonoBehaviour
         Vector3 shootDirection = transform.forward;
         shootDirection.x += Random.Range(-spread, spread);
         shootDirection.y += Random.Range(-spread, spread);
+        shootDirection.z += Random.Range(-spread, spread);
 
         RaycastHit hit;
         Vector3 shootEnd = transform.position + shootDirection * range;
 
         if (Physics.Raycast(transform.position, shootDirection, out hit, range))
         {
+            shootEnd = hit.point;
+
             Debug.Log("Hit: " + hit.transform.name);
+
+            effect.SetUInt("SpawnCount", 10);
+            effect.SetVector3("SpawnPosition", hit.point);
+            effect.SendEvent("OnPlay");
         }
 
         // デバッグ用の弾道を描画
