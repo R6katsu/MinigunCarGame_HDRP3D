@@ -69,8 +69,8 @@ public class DriverBehaviour : MonoBehaviour
             steeringWheel.WheelCollider.steerAngle = _steeringPower * direction;
 
             steeringWheel.WheelCollider.GetWorldPose(out Vector3 pos, out Quaternion ang);
-            steeringWheel.WheelOffset.position = pos;   // タイヤモデルに座標を適用
-            steeringWheel.WheelOffset.rotation = ang;   // タイヤモデルに回転角を適用
+            steeringWheel.WheelOffset.position = steeringWheel.WheelCollider.transform.position;    // タイヤモデルに座標を適用
+            steeringWheel.WheelOffset.rotation = ang;                                               // タイヤモデルに回転角を適用
         }
     }
 

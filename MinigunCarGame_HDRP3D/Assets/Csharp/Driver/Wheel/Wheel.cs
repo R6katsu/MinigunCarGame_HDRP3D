@@ -47,7 +47,10 @@ public class Wheel : MonoBehaviour
 
         // タイヤの半径をsphereColで取得、不要になったsphereColを削除
         SphereCollider sphereCol = WheelOffset.gameObject.AddComponent<SphereCollider>();
-        WheelCollider.radius = sphereCol.radius;
+
+        // 車輪の最大の大きさを取得、sphereColの半径にかけて半径を取得
+        float wheelSscale = Mathf.Max(WheelOffset.localScale.x, WheelOffset.localScale.y, WheelOffset.localScale.z);
+        WheelCollider.radius = sphereCol.radius * wheelSscale;
         Destroy(sphereCol);
 
         // wheelColを車輪モデルと同位置同角度に変更
