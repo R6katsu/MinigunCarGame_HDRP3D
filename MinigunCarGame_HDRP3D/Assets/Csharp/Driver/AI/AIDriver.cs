@@ -258,8 +258,8 @@ public class AIDriver : DriverBehaviour
         // ‹——£‚ª“ž’Bè‡’lˆÈ‰º‚©‚Ç‚¤‚©‚ð”»’è
         if (distanceToDestination <= arrivalThreshold)
         {
-            int x = UnityEngine.Random.Range(-30, 30);
-            int z = UnityEngine.Random.Range(-30, 30);
+            int x = UnityEngine.Random.Range(-20, 20);
+            int z = UnityEngine.Random.Range(-20, 20);
             _objectiveTransforms[0].position = new Vector3(x, 0, z);
             /*
             _currentDestinationNumber++;
