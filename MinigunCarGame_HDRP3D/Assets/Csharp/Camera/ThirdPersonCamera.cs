@@ -102,7 +102,7 @@ public class ThirdPersonCamera : MonoBehaviour
             targetEulerAngles.x = NormalizeAngle(targetEulerAngles.x);
 
             // 新しい回転角度を計算し、X軸の回転角度を制限
-            float newXAngle = Mathf.Clamp(targetEulerAngles.x, -3.5f, 3.5f);
+            float newXAngle = Mathf.Clamp(targetEulerAngles.x, -15.0f, 5.0f);
 
             // 制限された角度を適用
             Quaternion limitedRotation = Quaternion.Euler(newXAngle, targetEulerAngles.y, targetEulerAngles.z);
