@@ -5,6 +5,8 @@ using UnityEngine.VFX;
 
 public class MiniGun : MonoBehaviour
 {
+    // 地面に当たった時は上に向かって土埃を上げるようにする。sそうしないと見えない
+
     public float fireRate = 0.1f;   // 発射間隔
     public float damage = 10f;      // ダメージ量
     public float range = 100f;      // Rayの飛距離
@@ -14,6 +16,14 @@ public class MiniGun : MonoBehaviour
     public LineRenderer lineRenderer; // LineRendererコンポーネント
 
     private float nextFireTime = 0f;
+
+    private GraphicsBuffer positionBuffer;
+    private GraphicsBuffer quaternionBuffer;
+
+    private List<Vector3> positions = new();
+    private List<Vector3> quaternions = new();
+
+    private int particleCount = 0;
 
     void Update()
     {
@@ -33,15 +43,12 @@ public class MiniGun : MonoBehaviour
         shootDirection.z += Random.Range(-spread, spread);
 
         RaycastHit hit;
-        Vector3 shootEnd = transform.position + shootDirection * range;
+        Vector3 shootStart = effect.transform.position;
+        Vector3 shootEnd = shootStart + shootDirection * range;
 
-        if (Physics.Raycast(transform.position, shootDirection, out hit, range))
+        if (Physics.Raycast(shootStart, shootDirection, out hit, range))
         {
             shootEnd = hit.point;
-
-            // 地面にパーティクルが生成された時に気持ち悪く点滅している
-            // Wallの側面にパーティクルが生成された時、上を向いてしまっている
-            // 回転させる軸が違うのかもしれない
 
             // 法線ベクトルを回転に変換する (up方向をnormalにする)
             Quaternion rotation = Quaternion.FromToRotation(Vector3.up, hit.normal);
@@ -92,41 +99,6 @@ public class MiniGun : MonoBehaviour
             }
             eulerAngles.z = closestAngle;
 
-            // スマートではないものの、一応全面に角度を対応させた筈
-            // Meshに埋まっているので、次は浮かせる方向を整える
-            /*
-            // 上
-            if (Mathf.RoundToInt(eulerAngles.x) == 0 && Mathf.RoundToInt(eulerAngles.y) == 0 && Mathf.RoundToInt(eulerAngles.z) == 0)
-            {
-                eulerAngles.x += 90.0f;
-            }
-            // 下
-            else if (Mathf.RoundToInt(eulerAngles.y) == 180 && Mathf.RoundToInt(eulerAngles.z) == 180)
-            {
-                eulerAngles.x -= 90;
-            }
-            // 正面
-            else if (Mathf.RoundToInt(eulerAngles.x) == 270)
-            {
-                eulerAngles.x += 90.0f;
-            }
-            // 左側面
-            else if(Mathf.RoundToInt(eulerAngles.z) == 90)
-            {
-                eulerAngles.y += 90.0f;
-            }
-            // 右側面
-            else if(Mathf.RoundToInt(eulerAngles.z) == 270)
-            {
-                eulerAngles.y -= 90.0f;
-            }
-            // 背後
-            else if(Mathf.RoundToInt(eulerAngles.x) == 90)
-            {
-                eulerAngles.x += 90.0f;
-            }
-            */
-
             // 基準ベクトルを選択 (例えば、Z軸を基準にする)
             Vector3 reference = Vector3.back;
 
@@ -144,23 +116,28 @@ public class MiniGun : MonoBehaviour
             float hitPointOffset = 0.25f;    // 浮かせる距離を定義
             Vector3 spawnPosition = hit.point + (perpendicularDirection * hitPointOffset);
 
-            VisualEffect tempEffect = Instantiate(effect, transform.position, Quaternion.identity);
-            tempEffect.transform.parent = transform;
-            tempEffect.transform.localPosition = Vector3.up;
+            particleCount++;
 
-            // 実際に動かしてみると上手くいかない
-            // そもそも斜めに対応していないっぽい
-            // あとパーティクルが点滅したり見えない時があって違和感がある
-            // 地面に生成されたパーティクルは特に点滅が酷い。カメラの角度的に平たいパーティクルは点滅する？
-            tempEffect.SetUInt("SpawnCount", 1);
+            effect.SetUInt("SpawnCount", 1);
 
-            // 生成時の位置と角度
-            tempEffect.SetVector3("SpawnPosition", spawnPosition);
-            tempEffect.SetVector3("SpawnAngle", eulerAngles);
+            positions.Add(spawnPosition);
+            quaternions.Add(eulerAngles);
 
-            tempEffect.SendEvent("OnPlay");
+            // positionBuffer
+            positionBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured, positions.Count, sizeof(float) * 3);
+            positionBuffer.SetData(positions);
 
-            StartCoroutine(Local(hit.transform, spawnPosition, eulerAngles, hit.normal, tempEffect));
+            // quaternionBuffer
+            quaternionBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured, quaternions.Count, sizeof(float) * 3);
+            quaternionBuffer.SetData(quaternions);
+
+            // GraphicsBufferをVFX Graphに渡す
+            effect.SetGraphicsBuffer("PositionBuffer", positionBuffer);
+            effect.SetGraphicsBuffer("QuaternionBuffer", quaternionBuffer);
+
+            effect.SendEvent("OnBulletHolePlay");
+
+            StartCoroutine(Local(hit.transform, spawnPosition, eulerAngles, hit.normal, particleCount));
         }
 
         // デバッグ用の弾道を描画
@@ -170,7 +147,7 @@ public class MiniGun : MonoBehaviour
         StartCoroutine(DrawLine(lr, transform.position, shootEnd));
     }
 
-    private IEnumerator Local(Transform parent, Vector3 position, Vector3 angle, Vector3 normal, VisualEffect tempEffect)
+    private IEnumerator Local(Transform parent, Vector3 position, Vector3 angle, Vector3 normal, int particleCount)
     {
         Vector3 localPosition = parent.InverseTransformPoint(position);
         Quaternion localRotation = Quaternion.Euler(angle);
@@ -191,11 +168,17 @@ public class MiniGun : MonoBehaviour
             float hitPointOffset = 0.025f;                          // 浮かせる距離を大きくしても点滅した。ここは原因ではない
             Vector3 spawnPosition = worldPosition + (direction * hitPointOffset);
 
-            tempEffect.SetVector3("LocalPosition", spawnPosition);
-            tempEffect.SetVector3("LocalAngle", localRotation.eulerAngles);
+            // 前回より少ない、且つ総数より多い値だった
+            if (this.particleCount <= particleCount)
+            {
+                break;
+            }
+
+            positions[particleCount] = spawnPosition;
+            quaternions[particleCount] = localRotation.eulerAngles;
         }
 
-        Destroy(tempEffect.gameObject);
+        particleCount--;
     }
 
     private IEnumerator DrawLine(LineRenderer lineRenderer, Vector3 start, Vector3 end)
