@@ -20,7 +20,7 @@ public class NavMeshEnemy : MonoBehaviour
 
     private void Update()
     {
-        //if (_agent.isStopped) { return; }
+        if (!_agent.isOnNavMesh) { return; }
 
         if (_agent.isOnOffMeshLink)
         {
