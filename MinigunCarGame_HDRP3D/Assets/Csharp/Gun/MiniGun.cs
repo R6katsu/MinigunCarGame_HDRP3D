@@ -8,14 +8,17 @@ public class MiniGun : MonoBehaviour
     // 地面に当たった時は上に向かって土埃を上げるようにする。sそうしないと見えない
 
     public float fireRate = 0.1f;   // 発射間隔
-    public float damage = 10f;      // ダメージ量
+    [SerializeField]
+    private AttackInfo damage = new();          // ダメージ量
     public float range = 100f;      // Rayの飛距離
     public float spread = 0.1f;     // ばらける範囲
     public VisualEffect effect;     // Hit時に生じるVFX
+    public AudioClip _shootSE;      // 発射時のSE
 
     public LineRenderer lineRenderer; // LineRendererコンポーネント
 
     private float nextFireTime = 0f;
+    private float nextShootSETime = 0f;
 
     private GraphicsBuffer positionBuffer;
     private GraphicsBuffer quaternionBuffer;
@@ -31,6 +34,12 @@ public class MiniGun : MonoBehaviour
         {
             nextFireTime = Time.time + fireRate;
             Shoot();
+
+            if (Time.time >= nextShootSETime)
+            {
+                nextShootSETime = Time.time + 0.05f;
+                SoundDirector.Instance.PlaySe(_shootSE);
+            }
         }
     }
 
@@ -48,6 +57,16 @@ public class MiniGun : MonoBehaviour
 
         if (Physics.Raycast(shootStart, shootDirection, out hit, range))
         {
+            IHealth health = null;
+            if (hit.collider.transform.TryGetComponent(out health))
+            {
+                health.GetHealth().Damage(damage);
+            }
+            else if (hit.collider.transform.parent != null && hit.collider.transform.parent.transform.TryGetComponent(out health))
+            {
+                health.GetHealth().Damage(damage);
+            }
+
             shootEnd = hit.point;
 
             // 法線ベクトルを回転に変換する (up方向をnormalにする)
@@ -158,6 +177,8 @@ public class MiniGun : MonoBehaviour
         {
             delta += Time.deltaTime;
             yield return null;
+
+            if (parent == null) { break; }
 
             // 追従時の位置と角度
             Vector3 worldPosition = parent.TransformPoint(localPosition);

@@ -86,7 +86,7 @@ public class ThirdPersonCamera : MonoBehaviour
 
     private void RotateMinigunToCamera()
     {
-        Vector3 cameraForward = Camera.main.transform.forward;
+        Vector3 cameraForward = transform.forward;
         cameraForward.Normalize();
 
         if (cameraForward.sqrMagnitude > 0.01f)
@@ -102,11 +102,11 @@ public class ThirdPersonCamera : MonoBehaviour
             targetEulerAngles.x = NormalizeAngle(targetEulerAngles.x);
 
             // 新しい回転角度を計算し、X軸の回転角度を制限
-            float newXAngle = Mathf.Clamp(targetEulerAngles.x, -15.0f, 5.0f);
+            float newXAngle = Mathf.Clamp(targetEulerAngles.x, -15.0f, 15.0f);
 
             // 制限された角度を適用
             Quaternion limitedRotation = Quaternion.Euler(newXAngle, targetEulerAngles.y, targetEulerAngles.z);
-            minigun.rotation = limitedRotation;
+            minigun.localRotation = limitedRotation;
         }
     }
 
