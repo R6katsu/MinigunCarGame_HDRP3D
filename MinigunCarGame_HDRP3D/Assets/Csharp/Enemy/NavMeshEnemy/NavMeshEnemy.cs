@@ -99,12 +99,10 @@ public class NavMeshEnemy : MonoBehaviour, IHealth
         // 経路探索が成功したか確認
         if (_agent.pathStatus == NavMeshPathStatus.PathComplete)
         {
-            Debug.Log("通れる道があります。");
             _agent.isStopped = false;
         }
         else
         {
-            Debug.Log("通れる道がありません。");
             _agent.isStopped = true;
         }
     }
